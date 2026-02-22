@@ -1,0 +1,15 @@
+/Users/moukhtar/projects/Chess/engine/bin/Debug/net10.0/engine
+/Users/moukhtar/projects/Chess/engine/bin/Debug/net10.0/engine.deps.json
+/Users/moukhtar/projects/Chess/engine/bin/Debug/net10.0/engine.runtimeconfig.json
+/Users/moukhtar/projects/Chess/engine/bin/Debug/net10.0/engine.dll
+/Users/moukhtar/projects/Chess/engine/bin/Debug/net10.0/engine.pdb
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/engine.GeneratedMSBuildEditorConfig.editorconfig
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/engine.AssemblyInfoInputs.cache
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/engine.AssemblyInfo.cs
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/engine.csproj.CoreCompileInputs.cache
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/engine.sourcelink.json
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/engine.dll
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/refint/engine.dll
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/engine.pdb
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/engine.genruntimeconfig.cache
+/Users/moukhtar/projects/Chess/engine/obj/Debug/net10.0/ref/engine.dll
