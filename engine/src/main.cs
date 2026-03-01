@@ -19,6 +19,7 @@ namespace Engine
 
             while (!Raylib.WindowShouldClose())
             {
+
                 Raylib.BeginDrawing();
                 Raylib.ClearBackground(Color.Black);
 
@@ -27,8 +28,7 @@ namespace Engine
                 Raylib.EndDrawing();
             }
 
-            Raylib.InitAudioDevice();
-
+            Raylib.CloseAudioDevice();
             Raylib.CloseWindow();
         }
     }

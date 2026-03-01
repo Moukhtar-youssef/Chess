@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Engine.Chess
@@ -5,7 +6,6 @@ namespace Engine.Chess
     public static class FenParser
     {
         public const string StartPositionFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
 
 
         public static void LoadPositionFromFen(string fen, Board Board)
@@ -21,9 +21,8 @@ namespace Engine.Chess
                 ['p'] = Pieces.Pawn
             };
 
-
-
-            string fenBoard = fen.Split(' ')[0];
+            string[] fenParts = fen.Split(' ');
+            string fenBoard = fenParts[0];
             int file = 0, rank = 7;
 
             foreach (char c in fenBoard)
@@ -32,7 +31,6 @@ namespace Engine.Chess
                 {
                     rank--;
                     file = 0;
-
                 }
                 else if (char.IsDigit(c))
                 {
@@ -43,12 +41,27 @@ namespace Engine.Chess
                     int PieceColor = char.IsUpper(c) ? Pieces.White : Pieces.Black;
                     int PieceType = pieceTypeFromSymbol[char.ToLower(c)];
                     Board.Squares[rank * 8 + file] = PieceColor | PieceType;
-
-
                     file++;
                 }
             }
 
+            Board.IsWhiteToMove = fenParts[1] == "w" ? true : false;
+
+            foreach (char c in fenParts[2])
+            {
+                if (c == 'K') Board.whiteCanCastleKingside = true;
+                else if (c == 'Q') Board.whiteCanCastleQueenside = true;
+                else if (c == 'k') Board.blackCanCastleKingside = true;
+                else if (c == 'q') Board.blackCanCastleQueenside = true;
+            }
+
+            Board.enPassantTargetSquare = fenParts[3] != "-"
+                ? BoardHelper.SquareToIndex(fenParts[3])
+                : (int?)null;
+
+            Board.HalfmoveClock = int.Parse(fenParts[4]);
+            Board.FullmoveNumber = int.Parse(fenParts[5]);
         }
     }
 }
+

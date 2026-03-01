@@ -19,11 +19,9 @@ namespace Engine.Chess
 
         BoardLayout Layout;
 
-        // Sprite sheet
         private Texture2D pieceSpriteSheet;
         private Dictionary<int, Rectangle> pieceSourceRects = new Dictionary<int, Rectangle>();
 
-        // Drag and drop
         private int? selectedSquare = null;
         List<int>? legalMoves = null;
         private int dragOffsetX = 0;
@@ -31,13 +29,15 @@ namespace Engine.Chess
 
         public bool IsWhiteToMove = true;
         public int MoveColour => IsWhiteToMove ? Pieces.White : Pieces.Black;
-        private int? enPassantTargetSquare = null;
-        private static bool whiteCanCastleKingside = true;
-        private static bool whiteCanCastleQueenside = true;
-        private static bool blackCanCastleKingside = true;
-        private static bool blackCanCastleQueenside = true;
+        public int? enPassantTargetSquare = null;
+        public static bool whiteCanCastleKingside = false;
+        public static bool whiteCanCastleQueenside = false;
+        public static bool blackCanCastleKingside = false;
+        public static bool blackCanCastleQueenside = false;
 
-        // Sounds
+        public int HalfmoveClock = 0;
+        public int FullmoveNumber = 0;
+
         private Sound moveSound;
         private Sound captureSound;
         private Sound checkSound;
@@ -68,7 +68,6 @@ namespace Engine.Chess
             int spriteWidth = pieceSpriteSheet.Width / 6;
             int spriteHeight = pieceSpriteSheet.Height / 2;
 
-            // White pieces
             pieceSourceRects[Pieces.White | Pieces.King] = new Rectangle(0 * spriteWidth, 0, spriteWidth, spriteHeight);
             pieceSourceRects[Pieces.White | Pieces.Queen] = new Rectangle(1 * spriteWidth, 0, spriteWidth, spriteHeight);
             pieceSourceRects[Pieces.White | Pieces.Bishop] = new Rectangle(2 * spriteWidth, 0, spriteWidth, spriteHeight);
@@ -76,7 +75,6 @@ namespace Engine.Chess
             pieceSourceRects[Pieces.White | Pieces.Rook] = new Rectangle(4 * spriteWidth, 0, spriteWidth, spriteHeight);
             pieceSourceRects[Pieces.White | Pieces.Pawn] = new Rectangle(5 * spriteWidth, 0, spriteWidth, spriteHeight);
 
-            // Black pieces
             pieceSourceRects[Pieces.Black | Pieces.King] = new Rectangle(0 * spriteWidth, spriteHeight, spriteWidth, spriteHeight);
             pieceSourceRects[Pieces.Black | Pieces.Queen] = new Rectangle(1 * spriteWidth, spriteHeight, spriteWidth, spriteHeight);
             pieceSourceRects[Pieces.Black | Pieces.Bishop] = new Rectangle(2 * spriteWidth, spriteHeight, spriteWidth, spriteHeight);
@@ -90,8 +88,7 @@ namespace Engine.Chess
             int screenWidth = Raylib.GetScreenWidth();
             int screenHeight = Raylib.GetScreenHeight();
 
-            // Use 90% of smaller dimension so it has margin
-            int boardSize = (int)(Math.Min(screenWidth, screenHeight) * 0.9f);
+            int boardSize = (int)(Math.Min(screenWidth, screenHeight) * 0.8f);
 
             Layout.Size = boardSize;
             Layout.SquareSize = boardSize / 8;
@@ -131,19 +128,18 @@ namespace Engine.Chess
                             x, y,
                             Layout.SquareSize,
                             Layout.SquareSize,
-                            new Color(0, 255, 0, 120)); // semi-transparent green
+                            new Color(0, 255, 0, 120));
                     }
                     if (Squares[squareIndex] != Pieces.None)
                     {
                         if (selectedSquare.HasValue && selectedSquare.Value == squareIndex)
-                            continue; // skip drawn piece if it's being dragged
+                            continue;
 
                         DrawPiece(Squares[squareIndex], x, y, Layout.SquareSize, Layout.SquareSize);
                     }
                 }
             }
 
-            // Draw dragged piece on top of everything
             if (selectedSquare.HasValue)
             {
                 int piece = Squares[selectedSquare.Value];
@@ -184,7 +180,6 @@ namespace Engine.Chess
         {
             int? square = GetSquareUnderMouse();
 
-            // Pick up piece
             if (Raylib.IsMouseButtonPressed(MouseButton.Left))
             {
                 if (square.HasValue && Squares[square.Value] != Pieces.None && Pieces.PieceColour(Squares[square.Value]) == MoveColour)
@@ -197,7 +192,6 @@ namespace Engine.Chess
                 }
             }
 
-            // Drop piece
             if (Raylib.IsMouseButtonReleased(MouseButton.Left))
             {
                 if (selectedSquare.HasValue && square.HasValue && legalMoves?.Contains(square.Value) == true)
@@ -211,30 +205,13 @@ namespace Engine.Chess
                     else
                         Raylib.PlaySound(moveSound);
 
-                    // Switch turn
                     IsWhiteToMove = !IsWhiteToMove;
 
-                    int sideToMove = MoveColour;
-
-                    // -----------------------------
-                    // CHECK GAME STATE
-                    // -----------------------------
-                    if (!HasAnyLegalMoves(sideToMove))
-                    {
-                        if (IsKingInCheck(sideToMove))
-                        {
-                            string winner = sideToMove == Pieces.White ? "Black" : "White";
-                            Console.WriteLine($"CHECKMATE! {winner} wins!");
-                        }
-                        else
-                        {
-                            Console.WriteLine("STALEMATE!");
-                        }
-                    }
+                    CheckGameState();
                 }
 
                 selectedSquare = null;
-                legalMoves.Clear();
+                legalMoves?.Clear();
             }
         }
 
@@ -245,9 +222,6 @@ namespace Engine.Chess
             int color = Pieces.PieceColour(piece);
             int direction = Pieces.IsWhite(piece) ? 8 : -8;
 
-            // -----------------------------
-            // 1️⃣ Handle en passant capture
-            // -----------------------------
             if (Pieces.PieceType(piece) == Pieces.Pawn &&
                     enPassantTargetSquare.HasValue &&
                     to == enPassantTargetSquare.Value &&
@@ -257,41 +231,30 @@ namespace Engine.Chess
                 Squares[capturedPawnSquare] = Pieces.None;
             }
 
-            // -----------------------------------
-            // 2️⃣ Update en passant target square
-            // -----------------------------------
             if (Pieces.PieceType(piece) == Pieces.Pawn && Math.Abs(to - from) == 16)
             {
-                // Pawn moved 2 squares forward → set en passant target behind it
                 enPassantTargetSquare = (from + direction);
             }
             else
             {
-                // Clear if not a double pawn move
                 enPassantTargetSquare = null;
             }
 
-            // -----------------------------
-            // 3️⃣ Handle castling
-            // -----------------------------
             int rank = (color == Pieces.White) ? 0 : 7;
             if (Pieces.PieceType(piece) == Pieces.King)
             {
-                // King-side castling
                 if (to == rank * 8 + 6)
                 {
-                    Squares[rank * 8 + 5] = Squares[rank * 8 + 7]; // Move rook
+                    Squares[rank * 8 + 5] = Squares[rank * 8 + 7];
                     Squares[rank * 8 + 7] = Pieces.None;
                 }
 
-                // Queen-side castling
                 if (to == rank * 8 + 2)
                 {
-                    Squares[rank * 8 + 3] = Squares[rank * 8 + 0]; // Move rook
+                    Squares[rank * 8 + 3] = Squares[rank * 8 + 0];
                     Squares[rank * 8 + 0] = Pieces.None;
                 }
 
-                // Remove castling rights for that color
                 if (color == Pieces.White)
                 {
                     whiteCanCastleKingside = false;
@@ -304,9 +267,6 @@ namespace Engine.Chess
                 }
             }
 
-            // -----------------------------
-            // 4️⃣ Update castling rights for rook moves
-            // -----------------------------
             if (Pieces.PieceType(piece) == Pieces.Rook)
             {
                 if (from == rank * 8 + 0)
@@ -321,9 +281,6 @@ namespace Engine.Chess
                 }
             }
 
-            // -----------------------------
-            // 5️⃣ Execute the move
-            // -----------------------------
             Squares[to] = Squares[from];
             Squares[from] = Pieces.None;
         }
@@ -378,6 +335,20 @@ namespace Engine.Chess
             }
 
             return false;
+        }
+        private void CheckGameState()
+        {
+            if (!HasAnyLegalMoves(MoveColour))
+            {
+                if (IsKingInCheck(MoveColour))
+                {
+                    Console.WriteLine($"CHECKMATE! {(MoveColour == Pieces.White ? "Black" : "White")} wins!");
+                }
+                else
+                {
+                    Console.WriteLine("STALEMATE!");
+                }
+            }
         }
     }
 }
